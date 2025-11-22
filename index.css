@@ -1,0 +1,129 @@
+/* Global Styles */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes slideIn {
+  from { 
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to { 
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ==================== ENHANCED PDF TEXT LAYER ==================== */
+/* Base text layer - Improved for better interactivity and visibility */
+.textLayer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    opacity: 1; /* Layer fully opaque, individual spans control visibility */
+    line-height: 1.0;
+}
+
+/* ==================== TEXT SPAN STYLES ==================== */
+.textLayer span {
+    color: transparent;
+    position: absolute;
+    white-space: pre;
+    cursor: text;
+    transform-origin: 0% 0%;
+    pointer-events: auto;
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    background-color: transparent;
+    /* Increased opacity for better visibility (0.3 → 0.4) */
+    opacity: 0.4;
+    /* Smooth transitions for better UX */
+    transition: opacity 0.1s ease, background-color 0.1s ease, text-shadow 0.1s ease, box-shadow 0.1s ease;
+}
+
+/* ==================== HOVER EFFECT - REVEAL TEXT ==================== */
+.textLayer span:hover {
+    opacity: 0.6;
+    background-color: rgba(255, 255, 0, 0.08);
+    text-shadow: 0 0 3px rgba(100, 150, 255, 0.6), 0 0 1px rgba(0, 0, 0, 0.2);
+    box-shadow: inset 0 0 4px rgba(255, 255, 0, 0.2);
+}
+
+/* ==================== ACTIVE SELECTION STYLES ==================== */
+.textLayer span.selected {
+    opacity: 0.8;
+    background-color: rgba(255, 200, 0, 0.3);
+    color: rgba(100, 80, 0, 0.4);
+    text-shadow: 0 0 2px rgba(255, 255, 0, 0.8);
+    box-shadow: inset 0 0 6px rgba(255, 255, 0, 0.3);
+    font-weight: 500;
+}
+
+/* ==================== ACTIVE STATE DURING SELECTION ==================== */
+.textLayer span:active {
+    opacity: 0.75;
+    background-color: rgba(255, 255, 0, 0.15);
+    text-shadow: 0 0 2px rgba(255, 200, 0, 0.7);
+}
+
+/* ==================== SELECTION PSEUDO-ELEMENT ==================== */
+.textLayer span::selection {
+    background-color: rgba(255, 200, 0, 0.6);
+    color: rgba(100, 80, 0, 0.5);
+}
+
+.textLayer span::-moz-selection {
+    background-color: rgba(255, 200, 0, 0.6);
+    color: rgba(100, 80, 0, 0.5);
+}
+
+/* ==================== KEYBOARD FOCUS STATE ==================== */
+.textLayer span:focus {
+    outline: 2px solid rgba(100, 150, 255, 0.6);
+    outline-offset: -1px;
+}
+
+/* ==================== HIGHLIGHT CLASS (Search Results) ==================== */
+.textLayer span.highlight {
+    background-color: rgba(255, 255, 0, 0.6) !important;
+    color: rgba(0, 0, 0, 0.8) !important;
+    text-shadow: 0 0 1px rgba(0, 0, 0, 0.3) !important;
+    border-radius: 2px;
+    padding: 0 2px;
+    opacity: 1 !important;
+    box-shadow: 0 0 4px rgba(255, 200, 0, 0.5) !important;
+}
+
+/* ==================== EXTRACTED TEXT STYLING ==================== */
+.textLayer span.extracted {
+    background-color: rgba(76, 175, 80, 0.3) !important;
+    border-bottom: 2px solid #4CAF50;
+    opacity: 0.7 !important;
+}
+
+/* ==================== REDUCED MOTION SUPPORT ==================== */
+@media (prefers-reduced-motion: reduce) {
+    .textLayer span {
+        transition: none;
+    }
+}

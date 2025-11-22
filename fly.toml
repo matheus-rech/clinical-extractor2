@@ -1,0 +1,51 @@
+# =============================================================================
+# Fly.io Configuration for Clinical Extractor
+# =============================================================================
+# Deploy with: flyctl deploy
+# Add secrets: flyctl secrets set GEMINI_API_KEY=your_key
+# =============================================================================
+
+app = "clinical-extractor"
+primary_region = "sjc"  # San Jose, CA (change to your preferred region)
+
+[build]
+  dockerfile = "Dockerfile.frontend"
+
+[env]
+  PORT = "8080"
+  NODE_ENV = "production"
+
+# Frontend service
+[[services]]
+  internal_port = 80
+  protocol = "tcp"
+
+  [[services.ports]]
+    handlers = ["http"]
+    port = 80
+    force_https = true
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+  [[services.tcp_checks]]
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "10s"
+
+  [[services.http_checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "get"
+    path = "/health"
+    protocol = "http"
+
+# Backend service (create separate fly.toml in backend/ directory)
+# See: backend/fly.toml

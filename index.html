@@ -1,0 +1,1565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinical Study Extraction System - Preview</title>
+    <!-- Load PDF.js library from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- Google API client is loaded dynamically in the main script -->
+
+    <style>
+        /* SCSS Variables */
+        :root {
+            --primary-blue: #007bff;
+            --primary-blue-dark: #0056b3;
+            --success-green: #4CAF50;
+            --success-green-light: #8BC34A;
+            --warning-orange: #FF9800;
+            --warning-orange-dark: #F57C00;
+            --error-red: #f44336;
+            --error-red-dark: #c82333;
+            --info-blue: #2196F3;
+
+            --gray-100: #f8f9fa;
+            --gray-200: #e9ecef;
+            --gray-300: #dee2e6;
+            --gray-400: #ccc;
+            --gray-500: #666;
+            --gray-600: #525252;
+            --gray-700: #333;
+            --gray-800: #2c3e50;
+            --gray-900: #1976D2;
+
+            --background-light: #f0f2f5;
+            --background-white: #ffffff;
+
+            --spacing-xs: 5px;
+            --spacing-sm: 10px;
+            --spacing-md: 15px;
+            --spacing-lg: 20px;
+            --spacing-xl: 30px;
+
+            --border-radius-sm: 3px;
+            --border-radius-md: 4px;
+            --border-radius-lg: 6px;
+            --border-radius-xl: 8px;
+
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+            --shadow-md: 2px 0 5px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --shadow-xl: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+            --transition-fast: 0.2s;
+            --transition-normal: 0.3s;
+            --transition-slow: 0.4s;
+        }
+
+        /* Layout Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            background-color: var(--background-light);
+        }
+
+        .main-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .form-panel {
+            width: 35%;
+            background: var(--background-white);
+            overflow-y: auto;
+            padding: var(--spacing-lg) var(--spacing-xl);
+            box-shadow: var(--shadow-md);
+        }
+
+        .pdf-panel {
+            width: 45%;
+            background: var(--gray-200);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .trace-panel {
+            width: 20%;
+            background: var(--background-white);
+            border-left: 1px solid var(--gray-400);
+            overflow-y: auto;
+            padding: var(--spacing-lg);
+        }
+
+        h1 {
+            color: var(--gray-700);
+            font-size: 24px;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h2 {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--primary-blue);
+            padding-bottom: var(--spacing-sm);
+            margin-top: var(--spacing-lg);
+        }
+
+        h3 {
+            color: #555;
+            margin-top: var(--spacing-lg);
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--gray-500);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .stats-container {
+            background: #f5f5f5;
+            padding: var(--spacing-sm);
+            border-radius: var(--border-radius-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+
+        .stats-row + .stats-row {
+            margin-top: var(--spacing-xs);
+        }
+
+        /* Form Styles */
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: var(--spacing-md);
+            padding: var(--spacing-xs);
+            border-radius: var(--border-radius-md);
+            transition: all var(--transition-normal);
+            position: relative; /* Needed for has-extraction pseudo-element */
+        }
+
+        .form-group.active-extraction {
+            background: #fff3e0 !important;
+            padding: var(--spacing-sm) !important;
+            margin: calc(-1 * var(--spacing-xs)) !important;
+            margin-bottom: var(--spacing-md) !important;
+            border-left: 4px solid var(--warning-orange) !important;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .form-group .ai-field-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .form-group .ai-field-group textarea,
+        .form-group .ai-field-group input {
+            flex-grow: 1;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: var(--spacing-xs);
+            color: var(--gray-700);
+        }
+
+        input[type="text"],
+        input[type="number"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 8px 10px;
+            box-sizing: border-box;
+            border: 1px solid var(--gray-400);
+            border-radius: var(--border-radius-md);
+            font-size: 14px;
+        }
+
+        /* Validation */
+        .validation-error {
+            border-color: var(--error-red) !important;
+            background-color: #fff5f5 !important;
+        }
+
+        .validation-message {
+            color: var(--error-red);
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .validation-error + .validation-message {
+            display: block;
+        }
+
+        /* Field States */
+        .linked-input {
+            background-color: #f0f8ff;
+            border-color: #b3d7ff;
+        }
+
+        .linked-input.has-extraction {
+            background-color: #e8f5e9;
+            border-color: var(--success-green);
+        }
+
+        .linked-input.has-extraction::after {
+            content: '✓';
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--success-green);
+            font-weight: bold;
+            pointer-events: none; /* Ensure it doesn't interfere with input focus */
+        }
+        /* Adjustments for textarea */
+        textarea.linked-input.has-extraction::after {
+            top: 10px; /* Adjust vertical position for textarea */
+            transform: none;
+        }
+
+        /* Dynamic Containers */
+        .dynamic-container {
+            border: 1px solid #ddd;
+            padding: var(--spacing-md);
+            margin-top: var(--spacing-md);
+            border-radius: var(--border-radius-md);
+            background-color: #f9f9f9;
+        }
+
+        /* Grids */
+        .grid-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-md);
+        }
+
+        .grid-3col {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: var(--spacing-md);
+        }
+
+        .grid-mrs {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: var(--spacing-xs);
+        }
+
+        /* Progress Bar */
+        #progress-bar-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: var(--border-radius-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 10px;
+            background: linear-gradient(90deg, var(--success-green), var(--success-green-light));
+            border-radius: var(--border-radius-md);
+            transition: width var(--transition-slow) ease;
+        }
+
+        /* Navigation */
+        .navigation {
+            position: sticky;
+            bottom: 0;
+            background: var(--background-white);
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-top: 2px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: var(--spacing-xl);
+        }
+
+
+        /* PDF Viewer Styles */
+        .pdf-toolbar {
+            background: var(--gray-800);
+            color: white;
+            padding: var(--spacing-sm);
+            display: flex;
+            gap: var(--spacing-sm);
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+            flex-wrap: wrap;
+        }
+
+        .pdf-toolbar button {
+            background: #34495e;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: var(--border-radius-md);
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .pdf-toolbar button:hover {
+            background: #4a5f7f;
+        }
+
+        .pdf-toolbar input[type="number"] {
+            width: 50px;
+            text-align: center;
+            padding: 4px;
+            border-radius: var(--border-radius-sm); /* Ensure consistent rounding */
+        }
+
+        .pdf-toolbar select {
+            padding: 4px 8px;
+            border-radius: var(--border-radius-md);
+        }
+
+
+        #active-field-indicator {
+            background: var(--warning-orange);
+            color: black; /* Ensure readability */
+            padding: 4px 12px;
+            border-radius: var(--border-radius-md);
+            margin-left: auto;
+            white-space: nowrap; /* Prevent wrapping */
+        }
+
+        .pdf-container {
+            flex: 1;
+            overflow: auto;
+            background: var(--gray-600);
+            position: relative;
+            padding: var(--spacing-lg) 0;
+            text-align: center; /* Center the page */
+        }
+
+        .pdf-page {
+            margin: var(--spacing-lg) auto;
+            background: white;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            display: inline-block; /* Ensure centering works */
+            text-align: left; /* Reset text align for content */
+        }
+
+        .upload-area {
+            border: 2px dashed var(--gray-400);
+            border-radius: var(--border-radius-xl);
+            padding: 50px;
+            text-align: center;
+            margin: 50px;
+            background: white;
+            cursor: pointer;
+        }
+        .upload-area h3 {
+            margin-top: 0;
+        }
+
+        .upload-link {
+            cursor: pointer;
+            color: var(--primary-blue);
+            text-decoration: underline;
+        }
+
+        .toolbar-text {
+            color: white;
+            white-space: nowrap; /* Prevent wrapping */
+        }
+
+        /* Text Layer */
+        .textLayer {
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            opacity: 0.2;
+            line-height: 1;
+        }
+
+        .textLayer > span {
+            color: transparent;
+            position: absolute;
+            white-space: pre;
+            cursor: text;
+            transform-origin: 0% 0%;
+        }
+
+        .textLayer ::selection {
+            background: rgba(0, 123, 255, 0.3);
+        }
+
+        .textLayer.active-selection ::selection {
+            background: rgba(255, 193, 7, 0.4);
+        }
+
+        .textLayer .highlight {
+            background: rgba(255, 193, 7, 0.4) !important;
+        }
+
+        .textLayer .extracted {
+            background: rgba(76, 175, 80, 0.2) !important;
+        }
+
+        .textLayer .search-highlight {
+            background: rgba(255, 87, 34, 0.5) !important;
+            color: transparent !important;
+        }
+
+        /* Extraction Markers */
+        .extraction-marker {
+            position: absolute;
+            border: 2px solid var(--success-green);
+            background: rgba(76, 175, 80, 0.15);
+            pointer-events: all;
+            cursor: pointer;
+            box-sizing: border-box; /* Include border in size */
+        }
+
+        .extraction-marker:hover {
+            background: rgba(76, 175, 80, 0.3);
+            z-index: 1000;
+        }
+
+        .extraction-marker::before {
+            content: attr(data-field);
+            position: absolute;
+            top: -24px;
+            left: 0;
+            background: var(--success-green);
+            color: white;
+            padding: 2px 8px;
+            font-size: 11px;
+            border-radius: var(--border-radius-sm);
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity var(--transition-normal);
+            z-index: 1001;
+            pointer-events: none;
+        }
+        .extraction-marker[data-method^="gemini"] {
+            border-color: #9b61f9;
+            background: rgba(155, 97, 249, 0.15);
+        }
+        .extraction-marker[data-method^="gemini"]::before {
+            background: #9b61f9;
+        }
+        .extraction-marker[data-method^="gemini"]:hover {
+             background: rgba(155, 97, 249, 0.3);
+        }
+
+
+        .extraction-marker:hover::before {
+            opacity: 1;
+        }
+
+        /* Search Result Markers */
+        .search-marker {
+            position: absolute;
+            border: 2px solid #FF5722;
+            background: rgba(255, 87, 34, 0.2);
+            pointer-events: all;
+            cursor: pointer;
+            z-index: 500;
+            box-sizing: border-box; /* Include border in size */
+        }
+
+        .search-marker:hover {
+            background: rgba(255, 87, 34, 0.4);
+        }
+
+        .search-marker::before {
+            content: "Match";
+            position: absolute;
+            top: -24px;
+            left: 0;
+            background: #FF5722;
+            color: white;
+            padding: 2px 8px;
+            font-size: 11px;
+            border-radius: var(--border-radius-sm);
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity var(--transition-normal);
+            z-index: 1001;
+        }
+
+        .search-marker:hover::before {
+            opacity: 1;
+        }
+
+
+        /* Trace Panel Styles */
+        .trace-entry {
+            background: var(--gray-100);
+            border: 1px solid var(--gray-300);
+            border-radius: var(--border-radius-md);
+            padding: var(--spacing-sm);
+            margin-bottom: var(--spacing-sm);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            font-size: 12px;
+        }
+        
+        .trace-entry[data-method^="gemini"] {
+            border-left: 4px solid #9b61f9;
+        }
+        .trace-entry[data-method^="manual"] {
+            border-left: 4px solid var(--success-green);
+        }
+
+        .trace-entry:hover {
+            background: #e3f2fd;
+            border-color: var(--info-blue);
+            transform: translateX(3px);
+        }
+
+        .trace-entry .field-label {
+            font-weight: bold;
+            color: var(--gray-900);
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .trace-entry .extracted-text {
+            color: var(--gray-700);
+            font-size: 11px;
+            margin: 6px 0;
+            padding: 4px;
+            background: white;
+            border-left: 3px solid var(--gray-400);
+            display: block;
+            word-wrap: break-word;
+        }
+        
+        .trace-entry[data-method^="manual"] .extracted-text {
+             border-left-color: var(--success-green);
+        }
+        .trace-entry[data-method^="gemini"] .extracted-text {
+             border-left-color: #9b61f9;
+        }
+
+        .trace-entry .metadata {
+            font-size: 10px;
+            color: var(--gray-500);
+            text-transform: capitalize;
+        }
+
+        /* Export Section */
+        .export-section {
+            background: #f0f8ff;
+            padding: 12px;
+            border-radius: var(--border-radius-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .export-section h4 {
+            margin: 0 0 var(--spacing-sm) 0;
+            font-size: 14px;
+        }
+
+        .export-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .export-buttons button {
+            padding: 6px;
+            font-size: 11px;
+        }
+
+        /* Markdown Section */
+        .markdown-section {
+            background: #fff3e0;
+            padding: 12px;
+            border-radius: var(--border-radius-lg);
+            margin-bottom: var(--spacing-md);
+            border: 1px solid var(--warning-orange);
+        }
+
+        .markdown-section h4 {
+            margin: 0 0 8px 0;
+            color: var(--warning-orange);
+            font-size: 14px;
+        }
+
+        .markdown-section button {
+            padding: 6px 12px;
+            font-size: 12px;
+            background: var(--warning-orange);
+            margin-right: var(--spacing-xs);
+        }
+
+        .markdown-section button:hover {
+            background: var(--warning-orange-dark);
+        }
+
+        #markdown-status {
+            font-size: 11px;
+            margin-top: var(--spacing-xs);
+            color: var(--gray-500);
+        }
+
+        .trace-title {
+            font-size: 18px;
+            margin-top: 0;
+        }
+
+        .export-json { background: var(--success-green); color: white; }
+        .export-csv { background: var(--info-blue); color: white; }
+        .export-audit { background: var(--warning-orange); color: white; }
+        .export-pdf { background: #9C27B0; color: white; }
+
+        .search-interface {
+            margin-top: var(--spacing-sm);
+            padding: var(--spacing-sm);
+            background: white;
+            border-radius: var(--border-radius-md);
+            display: none;
+        }
+
+        .search-interface.active {
+            display: block;
+        }
+
+        .search-interface textarea {
+            width: 100%;
+            height: 80px;
+            margin-bottom: 8px;
+            font-size: 12px;
+            box-sizing: border-box; /* Include padding/border */
+        }
+
+        .search-results {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: var(--spacing-sm);
+        }
+
+        .search-result-item {
+            padding: 8px;
+            background: #f5f5f5;
+            margin-bottom: var(--spacing-xs);
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .search-result-item:hover {
+            background: #e0e0e0;
+        }
+
+
+        /* Button Styles */
+        button {
+            padding: var(--spacing-sm) var(--spacing-lg);
+            cursor: pointer;
+            border: none;
+            border-radius: var(--border-radius-md);
+            background-color: var(--primary-blue);
+            color: white;
+            font-size: 16px;
+            transition: background-color var(--transition-normal);
+        }
+
+        button:hover {
+            background-color: var(--primary-blue-dark);
+        }
+
+        button:disabled {
+            background-color: var(--gray-400);
+            cursor: not-allowed;
+        }
+
+        .add-btn {
+            background-color: #28a745;
+            font-size: 14px;
+            padding: 6px 12px;
+            margin-top: var(--spacing-sm);
+        }
+
+        .add-btn:hover {
+            background-color: #218838;
+        }
+
+        .remove-btn {
+            background-color: #dc3545;
+            font-size: 14px;
+            padding: 6px 12px;
+            margin-top: var(--spacing-sm);
+        }
+
+        .remove-btn:hover {
+            background-color: var(--error-red-dark);
+        }
+        
+        .validate-btn {
+            background-color: #6c757d;
+            color: white;
+            padding: 4px 8px;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+        .validate-btn:hover {
+            background-color: #5a6268;
+        }
+
+        .hidden,
+        input[type="file"] {
+            display: none;
+        }
+
+        .full-width {
+            width: 100%;
+        }
+        
+        #submit-btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Gemini Button Styles */
+        .gemini-btn {
+            background: linear-gradient(135deg, #4285F4, #9b61f9);
+            color: white;
+            padding: 8px 14px;
+            font-size: 14px;
+            margin: var(--spacing-sm) 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        .gemini-btn:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transform: translateY(-1px);
+        }
+        .gemini-loading {
+            font-size: 13px;
+            color: var(--primary-blue-dark);
+            margin: var(--spacing-sm) 0;
+        }
+
+        /* NEW AI ASSISTANT STYLES */
+        .ai-assistant-section {
+            background: #fdf8e6;
+            padding: 12px;
+            border-radius: var(--border-radius-lg);
+            margin-top: var(--spacing-lg);
+            border: 1px solid #ffedd5;
+        }
+        .ai-assistant-section h4 {
+            margin: 0 0 4px 0;
+            color: #92400e;
+            font-size: 14px;
+        }
+        .ai-assistant-section .ai-subtitle {
+            font-size: 11px;
+            margin: 0 0 8px 0;
+            color: #9ca3af;
+        }
+        .ai-assistant-section textarea {
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        .ai-results-container {
+            background: white;
+            margin-top: var(--spacing-sm);
+            padding: 10px;
+            border-radius: var(--border-radius-md);
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .ai-results-container table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+        .ai-results-container th, .ai-results-container td {
+            border: 1px solid #ddd;
+            padding: 6px;
+            text-align: left;
+        }
+        .ai-results-container th {
+            background-color: #f2f2f2;
+        }
+        .ai-results-container details {
+            margin-bottom: 5px;
+        }
+        .ai-results-container summary {
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+
+        /* Animations and UI Effects */
+        @keyframes pulse {
+            0% {
+                background: #fff3e0;
+            }
+            50% {
+                background: #ffe0b2;
+            }
+            100% {
+                background: #fff3e0;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Status Message */
+        .extraction-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px 20px;
+            border-radius: var(--border-radius-xl);
+            box-shadow: var(--shadow-xl);
+            display: none;
+            z-index: 1000;
+            max-width: 400px; /* For longer validation messages */
+            word-wrap: break-word; /* Wrap long quotes */
+        }
+
+        .extraction-status.show {
+            display: block;
+            animation: slideUp var(--transition-normal);
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            display: none;
+            background-color: rgba(255, 255, 255, 0.7); /* Optional overlay */
+            padding: 20px;
+            border-radius: var(--border-radius-lg);
+        }
+
+        .loading-spinner.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        /* Panel Collapse/Expand Styles */
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .panel-toggle {
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border-radius: var(--border-radius-md);
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .panel-toggle:hover {
+            background: var(--primary-blue-dark);
+            transform: scale(1.1);
+        }
+
+        /* Collapsed panel states */
+        .form-panel.collapsed {
+            width: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            min-width: 0 !important;
+        }
+
+        .pdf-panel.collapsed {
+            width: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            min-width: 0 !important;
+        }
+
+        .trace-panel.collapsed {
+            width: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            min-width: 0 !important;
+            border: none !important;
+        }
+
+        /* Adjust layout when panels are collapsed */
+        .main-container.form-collapsed .form-panel { width: 0; }
+        .main-container.pdf-collapsed .pdf-panel { width: 0; }
+        .main-container.trace-collapsed .trace-panel { width: 0; }
+
+        /* Smooth transitions */
+        .form-panel, .pdf-panel, .trace-panel {
+            transition: all 0.3s ease;
+        }
+
+        /* Panel header styling */
+        .form-panel .panel-header {
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--gray-300);
+        }
+
+        .trace-panel .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--gray-300);
+        }
+
+        .pdf-panel .panel-header {
+            display: flex;
+            justify-content: flex-end;
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.1"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+    <div class="main-container">
+        <!-- Form Panel (Left) -->
+        <div class="form-panel" id="form-panel-container">
+            <div class="panel-header">
+                <h1>Clinical Study Master Extraction</h1>
+                <button type="button" class="panel-toggle" onclick="togglePanel('form')" title="Collapse form panel">−</button>
+            </div>
+            <p class="subtitle">
+                Click a field, then highlight text in the PDF to extract with full traceability.
+            </p>
+
+            <!-- Progress Bar -->
+            <div id="progress-bar-container">
+                <div id="progress-bar"></div>
+            </div>
+
+            <!-- Main Form -->
+            <form id="extraction-form">
+                <!-- Step 1: Study ID -->
+                <div class="step active" id="step-1">
+                    <h2>Step 1: Study ID</h2>
+                    <div class="form-group">
+                        <label for="citation">Full Citation (Required)</label>
+                        <div class="ai-field-group">
+                            <textarea id="citation" name="citation" class="linked-input" placeholder="Paste citation or title, then click ✨" required></textarea>
+                            <button type="button" id="find-metadata-btn" class="gemini-btn" title="Find Metadata with AI Search" onclick="findMetadata()" style="padding: 8px 12px; margin: 0; font-size: 14px;">✨</button>
+                        </div>
+                        <div id="metadata-loading" class="gemini-loading" style="display: none;">✨ Searching for metadata...</div>
+                    </div>
+                    <div class="grid-2col">
+                        <div class="form-group">
+                            <label for="doi">DOI</label>
+                            <input type="text" id="doi" name="doi" class="linked-input" data-validation="doi">
+                            <span class="validation-message">Invalid DOI format</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="pmid">PMID</label>
+                            <input type="text" id="pmid" name="pmid" class="linked-input" data-validation="pmid">
+                            <span class="validation-message">PMID must be numeric</span>
+                        </div>
+                    </div>
+                    <div class="grid-3col">
+                        <div class="form-group">
+                            <label for="journal">Journal</label>
+                            <input type="text" id="journal" name="journal" class="linked-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="year">Year</label>
+                            <input type="number" id="year" name="year" class="linked-input" data-validation="year">
+                            <span class="validation-message">Invalid year (1900-2100)</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="country">Country</label>
+                            <input type="text" id="country" name="country" class="linked-input">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="centers">Centers (e.g., Single, Multi)</label>
+                        <input type="text" id="centers" name="centers" class="linked-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="funding">Funding Sources</label>
+                        <textarea id="funding" name="funding" class="linked-input"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="conflicts">Conflicts of Interest</label>
+                        <textarea id="conflicts" name="conflicts" class="linked-input"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="registration">Trial Registration ID</label>
+                        <input type="text" id="registration" name="registration" class="linked-input">
+                    </div>
+                </div>
+
+                <!-- Step 2: PICO-T -->
+                <div class="step" id="step-2">
+                    <h2>Step 2: PICO-T</h2>
+                    <button type="button" id="generate-pico-btn" class="gemini-btn" onclick="generatePICO()">✨ Generate PICO-T Summary</button>
+                    <div id="pico-loading" class="gemini-loading" style="display: none;">✨ Generating PICO-T...</div>
+
+                    <div class="form-group">
+                        <label for="eligibility-population">Population</label>
+                        <div class="ai-field-group">
+                            <textarea id="eligibility-population" name="eligibility-population" class="linked-input"></textarea>
+                            <button type="button" class="validate-btn" title="Validate with AI" onclick="validateFieldWithAI('eligibility-population')">✓</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="eligibility-intervention">Intervention</label>
+                        <div class="ai-field-group">
+                            <textarea id="eligibility-intervention" name="eligibility-intervention" class="linked-input"></textarea>
+                            <button type="button" class="validate-btn" title="Validate with AI" onclick="validateFieldWithAI('eligibility-intervention')">✓</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="eligibility-comparator">Comparator</label>
+                        <div class="ai-field-group">
+                        <textarea id="eligibility-comparator" name="eligibility-comparator" class="linked-input"></textarea>
+                            <button type="button" class="validate-btn" title="Validate with AI" onclick="validateFieldWithAI('eligibility-comparator')">✓</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="eligibility-outcomes">Outcomes Measured</label>
+                        <div class="ai-field-group">
+                            <textarea id="eligibility-outcomes" name="eligibility-outcomes" class="linked-input"></textarea>
+                            <button type="button" class="validate-btn" title="Validate with AI" onclick="validateFieldWithAI('eligibility-outcomes')">✓</button>
+                        </div>
+                    </div>
+                    <div class="grid-2col">
+                        <div class="form-group">
+                            <label for="eligibility-timing">Timing/Follow-up</label>
+                            <div class="ai-field-group">
+                                <input type="text" id="eligibility-timing" name="eligibility-timing" class="linked-input">
+                                <button type="button" class="validate-btn" title="Validate with AI" onclick="validateFieldWithAI('eligibility-timing')">✓</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="eligibility-type">Study Type (e.g., RCT, Cohort)</label>
+                             <div class="ai-field-group">
+                                <input type="text" id="eligibility-type" name="eligibility-type" class="linked-input">
+                                <button type="button" class="validate-btn" title="Validate with AI" onclick="validateFieldWithAI('eligibility-type')">✓</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="inclusion-met">Inclusion Criteria Met?</label>
+                        <select id="inclusion-met" name="inclusion-met" required>
+                            <option value="">Select...</option>
+                            <option value="true">Yes</option>
+                            <option value="false">No (Stop Extraction)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Step 3: Baseline -->
+                <div class="step" id="step-3">
+                    <h2>Step 3: Baseline</h2>
+                    <h3>Sample Size</h3>
+                    <div class="grid-3col">
+                        <div class="form-group">
+                            <label for="totalN">Total N (Required)</label>
+                            <input type="number" id="totalN" name="totalN" class="linked-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="surgicalN">Surgical N</label>
+                            <input type="number" id="surgicalN" name="surgicalN" class="linked-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="controlN">Control N</label>
+                            <input type="number" id="controlN" name="controlN" class="linked-input">
+                        </div>
+                    </div>
+                    <h3>Age Demographics</h3>
+                    <div class="dynamic-container">
+                        <div class="grid-2col">
+                            <div class="form-group">
+                                <label for="ageMean">Age Mean</label>
+                                <input type="number" step="0.1" id="ageMean" name="ageMean" class="linked-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="ageSD">Age SD</label>
+                                <input type="number" step="0.1" id="ageSD" name="ageSD" class="linked-input">
+                            </div>
+                        </div>
+                        <div class="grid-3col">
+                            <div class="form-group">
+                                <label for="ageMedian">Age Median</label>
+                                <input type="number" step="0.1" id="ageMedian" name="ageMedian" class="linked-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="ageIQR_lower">Age IQR (Lower/Q1)</label>
+                                <input type="number" step="0.1" id="ageIQR_lower" name="ageIQR_lower" class="linked-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="ageIQR_upper">Age IQR (Upper/Q3)</label>
+                                <input type="number" step="0.1" id="ageIQR_upper" name="ageIQR_upper" class="linked-input">
+                            </div>
+                        </div>
+                    </div>
+                    <h3>Gender</h3>
+                    <div class="grid-2col">
+                        <div class="form-group">
+                            <label for="maleN">Male N</label>
+                            <input type="number" id="maleN" name="maleN" class="linked-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="femaleN">Female N</label>
+                            <input type="number" id="femaleN" name="femaleN" class="linked-input">
+                        </div>
+                    </div>
+                    <h3>Baseline Clinical Scores</h3>
+                    <div class="grid-3col">
+                        <div class="form-group">
+                            <label for="prestrokeMRS">Pre-stroke mRS</label>
+                            <input type="number" step="0.1" id="prestrokeMRS" name="prestrokeMRS" class="linked-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="nihssMean">NIHSS Mean/Median</label>
+                            <input type="number" step="0.1" id="nihssMean" name="nihssMean" class="linked-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="gcsMean">GCS Mean/Median</label>
+                            <input type="number" step="0.1" id="gcsMean" name="gcsMean" class="linked-input">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Imaging -->
+                <div class="step" id="step-4">
+                    <h2>Step 4: Imaging</h2>
+                    <div class="form-group">
+                        <label for="vascularTerritory">Vascular Territory</label>
+                        <input type="text" id="vascularTerritory" name="vascularTerritory" class="linked-input">
+                    </div>
+                    <div class="grid-2col">
+                        <div class="form-group">
+                            <label for="infarctVolume">Infarct Volume</label>
+                            <input type="number" step="0.1" id="infarctVolume" name="infarctVolume" class="linked-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="strokeVolumeCerebellum">Stroke Volume (Cerebellum)</label>
+                            <input type="text" id="strokeVolumeCerebellum" name="strokeVolumeCerebellum" class="linked-input">
+                        </div>
+                    </div>
+                    <h3>Edema Dynamics</h3>
+                    <div class="form-group">
+                        <label for="edemaDynamics">Edema Description</label>
+                        <textarea id="edemaDynamics" name="edemaDynamics" class="linked-input"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="peakSwellingWindow">Peak Swelling Window</label>
+                        <input type="text" id="peakSwellingWindow" name="peakSwellingWindow" class="linked-input">
+                    </div>
+                    <h3>Involvement Areas</h3>
+                    <div class="grid-3col">
+                        <div class="form-group">
+                            <label for="brainstemInvolvement">Brainstem Involvement?</label>
+                            <select id="brainstemInvolvement" name="brainstemInvolvement">
+                                <option value="null">Unknown</option>
+                                <option value="true">Yes</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="supratentorialInvolvement">Supratentorial?</label>
+                            <select id="supratentorialInvolvement" name="supratentorialInvolvement">
+                                <option value="null">Unknown</option>
+                                <option value="true">Yes</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="nonCerebellarStroke">Non-cerebellar?</label>
+                            <select id="nonCerebellarStroke" name="nonCerebellarStroke">
+                                <option value="null">Unknown</option>
+                                <option value="true">Yes</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 5: Interventions -->
+                <div class="step" id="step-5">
+                    <h2>Step 5: Interventions</h2>
+                    <h3>Surgical Indications</h3>
+                    <div id="indications-container"></div>
+                    <button type="button" class="add-btn" onclick="addIndication()">+ Add Indication</button>
+                    <h3>Interventions</h3>
+                    <div id="interventions-container"></div>
+                    <button type="button" class="add-btn" onclick="addIntervention()">+ Add Intervention Type</button>
+                </div>
+
+                <!-- Step 6: Study Arms -->
+                <div class="step" id="step-6">
+                    <h2>Step 6: Study Arms</h2>
+                    <p class="subtitle">Define the distinct groups for comparison.</p>
+                    <div id="arms-container"></div>
+                    <button type="button" class="add-btn" onclick="addArm()">+ Add Study Arm</button>
+                </div>
+
+                <!-- Step 7: Outcomes -->
+                <div class="step" id="step-7">
+                    <h2>Step 7: Outcomes</h2>
+                    <h3>Mortality Data</h3>
+                    <div id="mortality-global-container"></div>
+                    <button type="button" class="add-btn" onclick="addMortality()">+ Add Mortality Data</button>
+                    <h3>Modified Rankin Scale (mRS)</h3>
+                    <div id="mrs-global-container"></div>
+                    <button type="button" class="add-btn" onclick="addMRS()">+ Add mRS Data</button>
+                </div>
+
+                <!-- Step 8: Complications -->
+                <div class="step" id="step-8">
+                    <h2>Step 8: Complications</h2>
+                    <h3>Complications</h3>
+                    <div id="complications-container"></div>
+                    <button type="button" class="add-btn" onclick="addComplication()">+ Add Complication</button>
+                    
+                    <h3>Predictors of Outcome</h3>
+                    <div class="form-group">
+                        <label for="predictorsPoorOutcomeSurgical">Summary of Key Findings / Predictors</label>
+                        <button type="button" id="generate-summary-btn" class="gemini-btn" onclick="generateSummary()">✨ Summarize Key Findings</button>
+                        <div id="summary-loading" class="gemini-loading" style="display: none;">✨ Generating Summary...</div>
+                        <div class="ai-field-group">
+                            <textarea id="predictorsPoorOutcomeSurgical" name="predictorsPoorOutcomeSurgical" class="linked-input" rows="6"></textarea>
+                            <button type="button" class="validate-btn" title="Validate with AI" onclick="validateFieldWithAI('predictorsPoorOutcomeSurgical')">✓</button>
+                        </div>
+                    </div>
+                    <h4>Predictor Analysis</h4>
+                    <div id="predictors-container"></div>
+                    <button type="button" class="add-btn" onclick="addPredictor()">+ Add Predictor</button>
+                </div>
+            </form>
+
+            <!-- Navigation -->
+            <div class="navigation">
+                <div id="step-indicator">Step 1 of 8</div>
+                <div>
+                    <button id="prev-btn" disabled>Previous</button>
+                    <button id="next-btn">Next</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PDF Panel (Center) -->
+        <div class="pdf-panel" id="pdf-panel-container">
+            <div class="panel-header" style="background: var(--gray-800); padding: var(--spacing-sm) var(--spacing-lg);">
+                <button type="button" class="panel-toggle" onclick="togglePanel('pdf')" title="Collapse PDF panel" style="margin-left: auto;">−</button>
+            </div>
+            <div class="pdf-panel-content">
+            <div class="pdf-toolbar">
+                <select id="pdf-library-select" style="padding: 6px 12px; border-radius: 4px; border: 1px solid #ccc; background: white; font-size: 14px; min-width: 250px;" aria-label="Select PDF from library">
+                    <option value="">Select a PDF from library...</option>
+                </select>
+                <button id="pdf-prev-page" aria-label="Previous Page">◄</button>
+                <span class="toolbar-text">
+                    Page <input type="number" id="page-num" value="1" min="1" aria-label="Page number">
+                    of <span id="total-pages">0</span>
+                </span>
+                <button id="pdf-next-page" aria-label="Next Page">►</button>
+                <select id="zoom-level" aria-label="Zoom level">
+                    <option value="0.75">75%</option>
+                    <option value="1" selected>100%</option>
+                    <option value="1.25">125%</option>
+                    <option value="1.5">150%</option>
+                </select>
+                <button id="fit-width">Fit Width</button>
+                <span id="active-field-indicator">No field selected</span>
+            </div>
+
+            <!-- New: Figure & Table Extraction Controls -->
+            <div class="extraction-toolbar" style="padding: 8px; background: #f5f5f5; border-bottom: 1px solid #ddd; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <!-- HERO BUTTON: Full AI Pipeline -->
+                <button onclick="runFullAIPipeline()" style="padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" title="Run full multi-agent pipeline: Extract → Classify → Route → Enhance → Validate">
+                    🚀 FULL AI ANALYSIS
+                </button>
+                <span style="margin: 0 8px; color: #999;">|</span>
+                <strong style="color: #1976d2; margin-right: 8px;">📊 Manual Tools:</strong>
+                <button onclick="extractFiguresFromPDF()" class="btn-extraction" style="padding: 6px 12px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;" title="Extract all figures from PDF using operator interception">
+                    🖼️ Figures
+                </button>
+                <button onclick="extractTablesFromPDF()" class="btn-extraction" style="padding: 6px 12px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;" title="Extract tables using geometric detection">
+                    📊 Tables
+                </button>
+                <span style="margin: 0 8px; color: #999;">|</span>
+                <strong style="color: #666; margin-right: 4px;">Visualization:</strong>
+                <button onclick="toggleBoundingBoxes()" class="btn-viz" id="bbox-toggle" style="padding: 6px 12px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;" title="Show/hide bounding boxes with coordinate provenance">
+                    🔲 Provenance
+                </button>
+                <button onclick="toggleTableRegions()" class="btn-viz" id="table-toggle" style="padding: 6px 12px; background: #9c27b0; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;" title="Show/hide detected table regions">
+                    📋 Tables
+                </button>
+            </div>
+
+            <!-- New: Integrated Services Toolbar -->
+            <div class="services-toolbar" style="padding: 8px; background: #e8f5e9; border-bottom: 1px solid #c8e6c9; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <strong style="color: #2e7d32; margin-right: 8px;">🔧 Services:</strong>
+                <button onclick="toggleSemanticSearch()" class="btn-service" id="search-toggle" style="padding: 6px 12px; background: #00bcd4; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;" title="Toggle semantic search panel">
+                    🔍 Search
+                </button>
+                <button onclick="toggleAnnotationTools()" class="btn-service" id="annotation-toggle" style="padding: 6px 12px; background: #ff5722; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;" title="Toggle annotation toolbar">
+                    ✏️ Annotate
+                </button>
+                <button onclick="configureBackendProxy()" class="btn-service" style="padding: 6px 12px; background: #607d8b; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;" title="Configure backend proxy settings">
+                    ⚙️ Proxy
+                </button>
+            </div>
+
+            <!-- Semantic Search Panel (Hidden by default) -->
+            <div id="semantic-search-panel" style="display: none; padding: 12px; background: #f0f9ff; border-bottom: 1px solid #b3e5fc;">
+                <strong style="color: #0277bd;">🔍 Semantic Search</strong>
+                <div style="margin-top: 8px; display: flex; gap: 8px;">
+                    <input type="text" id="semantic-search-input" placeholder="Search in document..." style="flex: 1; padding: 6px 12px; border: 1px solid #81d4fa; border-radius: 4px;">
+                    <button onclick="performSemanticSearch()" style="padding: 6px 16px; background: #0288d1; color: white; border: none; border-radius: 4px; cursor: pointer;">Search</button>
+                </div>
+                <div id="semantic-search-results" style="margin-top: 8px; max-height: 200px; overflow-y: auto;"></div>
+            </div>
+
+            <!-- Annotation Tools Panel (Hidden by default) -->
+            <div id="annotation-tools-panel" style="display: none; padding: 12px; background: #fff3e0; border-bottom: 1px solid #ffe0b2;">
+                <strong style="color: #e65100;">✏️ Annotation Tools</strong>
+                <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button onclick="setAnnotationTool('highlight')" style="padding: 6px 12px; background: #ffeb3b; color: #000; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">🖍️ Highlight</button>
+                    <button onclick="setAnnotationTool('note')" style="padding: 6px 12px; background: #ffc107; color: #000; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">📝 Note</button>
+                    <button onclick="setAnnotationTool('rectangle')" style="padding: 6px 12px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">▭ Rectangle</button>
+                    <button onclick="setAnnotationTool('circle')" style="padding: 6px 12px; background: #ff5722; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">⭕ Circle</button>
+                    <button onclick="setAnnotationTool('arrow')" style="padding: 6px 12px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">➡️ Arrow</button>
+                    <button onclick="setAnnotationTool('freehand')" style="padding: 6px 12px; background: #e91e63; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">✍️ Draw</button>
+                    <select id="annotation-color" style="padding: 6px; border: 1px solid #ff9800; border-radius: 4px;">
+                        <option value="yellow">Yellow</option>
+                        <option value="green">Green</option>
+                        <option value="blue">Blue</option>
+                        <option value="red">Red</option>
+                        <option value="purple">Purple</option>
+                        <option value="orange">Orange</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="pdf-container" class="pdf-container">
+                <div id="upload-area" class="upload-area" role="button" tabindex="0" aria-label="Upload PDF Area">
+                    <h3>📄 Drop PDF file here or click to browse</h3>
+                    <span class="upload-link">
+                        Select PDF File
+                    </span>
+                </div>
+                <div id="pdf-pages" style="display: none;" aria-live="polite">
+                    <!-- PDF pages will be rendered here -->
+                </div>
+            </div>
+            </div>
+        </div>
+
+        <!-- Trace Panel (Right) -->
+        <div class="trace-panel" id="trace-panel-container">
+            <div class="panel-header">
+                <h3 style="margin: 0;">Extraction Trace</h3>
+                <button type="button" class="panel-toggle" onclick="togglePanel('trace')" title="Collapse trace panel">−</button>
+            </div>
+            <h2 class="trace-title">Extraction Trace Log</h2>
+            <div class="markdown-section">
+                <h4>📝 Markdown Assistant</h4>
+                <button type="button" onclick="document.getElementById('markdown-file').click()">Load Markdown</button>
+                <button type="button" onclick="toggleSearchInterface()">Search Text</button>
+                <button type="button" onclick="handleExtractTables()" class="gemini-btn" style="font-size: 12px; padding: 6px 10px; margin: 5px 0 0 0;">✨ Extract Tables</button>
+                <input type="file" id="markdown-file" accept=".md,.txt" style="display:none;" aria-label="Upload markdown file">
+                <div id="markdown-status">No markdown file loaded.</div>
+                <div id="search-interface" class="search-interface">
+                    <label for="search-query" class="hidden">Search Query</label>
+                    <textarea id="search-query" placeholder="Paste or type text to search in PDF..."></textarea>
+                    <button onclick="searchInPDF()" class="full-width">🔍 Find in PDF</button>
+                    <div id="search-results" class="search-results" aria-live="polite">
+                        <!-- Search results will appear here -->
+                    </div>
+                </div>
+            </div>
+            
+            <div id="table-extraction-results" class="ai-results-container"></div>
+            
+            <div class="ai-assistant-section">
+                <h4>🖼️ Analyze Image</h4>
+                <p class="ai-subtitle">Upload a chart or figure to ask questions.</p>
+                <input type="file" id="image-upload-input" accept="image/*" style="display:none;">
+                <button type="button" onclick="document.getElementById('image-upload-input').click()" class="full-width">Upload Image</button>
+                <img id="image-preview" src="" alt="Image preview" style="display: none; max-width: 100%; margin-top: 10px; border-radius: 4px;">
+                <textarea id="image-analysis-prompt" placeholder="Ask a question about the image..." rows="3" style="margin-top: 10px;"></textarea>
+                <button id="analyze-image-btn" class="gemini-btn full-width" onclick="handleImageAnalysis()" disabled>Analyze Image</button>
+                <div id="image-analysis-results" class="ai-results-container"></div>
+            </div>
+            
+            <div class="ai-assistant-section">
+                <h4>🔬 Deep Analysis Assistant</h4>
+                <p class="ai-subtitle">Ask a complex question about the document.</p>
+                <textarea id="deep-analysis-prompt" placeholder="e.g., 'Compare the outcomes of the surgical group with the control group, considering the baseline NIHSS scores and reported complications.'" rows="5"></textarea>
+                <button class="gemini-btn full-width" onclick="handleDeepAnalysis()">Think Deeply ✨</button>
+                <div id="deep-analysis-results" class="ai-results-container"></div>
+            </div>
+
+            <div class="export-section">
+                <h4>Export Options</h4>
+                <div class="export-buttons">
+                        <button type="button" id="export-excel-btn" class="export-excel" style="background: #107C41; font-weight: bold;">📊 Excel</button>
+                        <button type="button" id="export-json-btn" class="export-json">📄 JSON</button>
+                        <button type="button" id="export-csv-btn" class="export-csv">📊 CSV</button>
+                        <button type="button" id="export-audit-btn" class="export-audit">📋 Audit</button>
+                        <button type="button" id="export-pdf-btn" class="export-pdf">📑 PDF</button>
+                </div>
+            </div>
+            <div class="stats-container">
+                <div class="stats-row">
+                    <span>Total Extractions:</span>
+                    <strong id="extraction-count">0</strong>
+                </div>
+                <div class="stats-row">
+                    <span>Pages with Data:</span>
+                    <strong id="pages-with-data">0</strong>
+                </div>
+            </div>
+            <div id="trace-log" aria-live="polite">
+                <!-- Trace log entries will appear here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Message -->
+    <div id="extraction-status" class="extraction-status" role="alert" aria-live="assertive">
+        <span id="status-message"></span>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="loading-spinner" id="loading-spinner" role="status" aria-label="Loading">
+        <div class="spinner"></div>
+    </div>
+
+    <script>
+        /**
+         * Toggle panel collapse/expand state
+         * Saves state to localStorage so preferences persist
+         */
+        function togglePanel(panelName) {
+            const panelId = panelName + '-panel-container';
+            const panel = document.getElementById(panelId);
+            
+            if (!panel) {
+                console.error(`Panel not found: ${panelId}`);
+                return;
+            }
+
+            // Toggle collapsed class
+            panel.classList.toggle('collapsed');
+
+            // Update button text
+            const btn = panel.querySelector('.panel-toggle');
+            if (btn) {
+                btn.textContent = panel.classList.contains('collapsed') ? '+' : '−';
+            }
+
+            // Save state to localStorage
+            const panelStates = JSON.parse(localStorage.getItem('panelStates') || '{}');
+            panelStates[panelName] = panel.classList.contains('collapsed');
+            localStorage.setItem('panelStates', JSON.stringify(panelStates));
+        }
+
+        /**
+         * Restore panel states from localStorage on page load
+         */
+        function restorePanelStates() {
+            const panelStates = JSON.parse(localStorage.getItem('panelStates') || '{}');
+            
+            ['form', 'pdf', 'trace'].forEach(panelName => {
+                if (panelStates[panelName]) {
+                    const panelId = panelName + '-panel-container';
+                    const panel = document.getElementById(panelId);
+                    if (panel) {
+                        panel.classList.add('collapsed');
+                        const btn = panel.querySelector('.panel-toggle');
+                        if (btn) btn.textContent = '+';
+                    }
+                }
+            });
+        }
+
+        // Restore panel states when page loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', restorePanelStates);
+        } else {
+            restorePanelStates();
+        }
+    </script>
+
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

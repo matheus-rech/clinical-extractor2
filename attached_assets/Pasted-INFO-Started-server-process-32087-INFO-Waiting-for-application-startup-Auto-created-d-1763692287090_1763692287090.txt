@@ -1,0 +1,50 @@
+INFO:     Started server process [32087]
+INFO:     Waiting for application startup.
+✅ Auto-created demo user: demo@example.com
+✅ Initialized PDF library with 1 items
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+INFO:     172.31.79.162:52568 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     172.31.79.162:52568 - "GET /api/pdf-library HTTP/1.1" 200 OK
+INFO:     172.31.79.162:52568 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     10.83.9.30:0 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     172.31.79.162:52568 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     172.31.79.162:52574 - "GET /api/pdf-library/sample_kim2016 HTTP/1.1" 200 OK
+INFO:     172.31.79.162:53548 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     172.31.79.162:53548 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     172.31.79.162:53548 - "OPTIONS /api/ai/deep-analysis HTTP/1.1" 200 OK
+INFO:     172.31.79.162:53548 - "OPTIONS /api/ai/deep-analysis HTTP/1.1" 200 OK
+INFO:     172.31.79.162:53548 - "POST /api/ai/deep-analysis HTTP/1.1" 200 OK
+Primary provider (gemini) failed: Invalid operation: The `response.text` quick accessor requires the response to contain a valid `Part`, but none were returned. The candidate's [finish_reason](https://ai.google.dev/api/generate-content#finishreason) is 2.
+Fallback provider (anthropic) also failed: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'system: Input should be a valid list'}, 'request_id': 'req_011CVLFKpaLgnCskwvQYp53a'}
+INFO:     172.31.79.162:53564 - "POST /api/ai/deep-analysis HTTP/1.1" 500 Internal Server Error
+INFO:     172.31.79.162:53564 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     172.31.79.162:53564 - "GET /api/health HTTP/1.1" 200 OK
+Primary provider (gemini) failed: Invalid operation: The `response.text` quick accessor requires the response to contain a valid `Part`, but none were returned. The candidate's [finish_reason](https://ai.google.dev/api/generate-content#finishreason) is 2.
+Fallback provider (anthropic) also failed: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'system: Input should be a valid list'}, 'request_id': 'req_011CVLFLbYYF1nJ6vkyptLhr'}
+INFO:     172.31.79.162:53564 - "POST /api/ai/deep-analysis HTTP/1.1" 500 Internal Server Error
+INFO:     172.31.79.162:46420 - "POST /api/ai/deep-analysis HTTP/1.1" 200 OK
+INFO:     172.31.79.162:46420 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     172.31.79.162:46420 - "GET /api/health HTTP/1.1" 200 OK
+Primary provider (gemini) failed: Invalid operation: The `response.text` quick accessor requires the response to contain a valid `Part`, but none were returned. The candidate's [finish_reason](https://ai.google.dev/api/generate-content#finishreason) is 2.
+Fallback provider (anthropic) also failed: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'system: Input should be a valid list'}, 'request_id': 'req_011CVLFN6TNbv8CLPFpNqbaG'}
+INFO:     172.31.79.162:46420 - "POST /api/ai/deep-analysis HTTP/1.1" 500 Internal Server Error
+Primary provider (gemini) failed: Invalid operation: The `response.text` quick accessor requires the response to contain a valid `Part`, but none were returned. The candidate's [finish_reason](https://ai.google.dev/api/generate-content#finishreason) is 2.
+Fallback provider (anthropic) also failed: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'system: Input should be a valid list'}, 'request_id': 'req_011CVLFNuvtWKRt6Rj9BdqsH'}
+INFO:     172.31.79.162:40774 - "POST /api/ai/deep-analysis HTTP/1.1" 500 Internal Server Error
+INFO:     172.31.79.162:40774 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     172.31.79.162:40774 - "GET /api/health HTTP/1.1" 200 OK
+Primary provider (gemini) failed: Invalid operation: The `response.text` quick accessor requires the response to contain a valid `Part`, but none were returned. The candidate's [finish_reason](https://ai.google.dev/api/generate-content#finishreason) is 2.
+Fallback provider (anthropic) also failed: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'system: Input should be a valid list'}, 'request_id': 'req_011CVLFPe5RVk8AhpiEMdWBm'}
+INFO:     172.31.79.162:40774 - "POST /api/ai/deep-analysis HTTP/1.1" 500 Internal Server Error
+Primary provider (gemini) failed: Invalid operation: The `response.text` quick accessor requires the response to contain a valid `Part`, but none were returned. The candidate's [finish_reason](https://ai.google.dev/api/generate-content#finishreason) is 2.
+Fallback provider (anthropic) also failed: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'system: Input should be a valid list'}, 'request_id': 'req_011CVLFQQg3kBW4AD468jdBy'}
+INFO:     172.31.79.162:51548 - "POST /api/ai/deep-analysis HTTP/1.1" 500 Internal Server Error
+INFO:     172.31.79.162:51548 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     172.31.79.162:51548 - "GET /api/health HTTP/1.1" 200 OK
+Primary provider (gemini) failed: Invalid operation: The `response.text` quick accessor requires the response to contain a valid `Part`, but none were returned. The candidate's [finish_reason](https://ai.google.dev/api/generate-content#finishreason) is 2.
+Fallback provider (anthropic) also failed: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'system: Input should be a valid list'}, 'request_id': 'req_011CVLFR8qakxd2dM73LAtcW'}
+INFO:     172.31.79.162:51548 - "POST /api/ai/deep-analysis HTTP/1.1" 500 Internal Server Error
+INFO:     172.31.79.162:52694 - "POST /api/ai/deep-analysis HTTP/1.1" 200 OK
+INFO:     172.31.79.162:52694 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     172.31.79.162:52694 - "GET /api/health HTTP/1.1" 200 OK

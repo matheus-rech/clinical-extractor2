@@ -1,0 +1,152 @@
+You are an autonomous AI coding agent working in the repository `mmrech/a_consulta` (Clinical Extractor). This is a full-stack application for clinical document/PDF analysis with AI (PICO-T, summaries, table extraction, deep analysis, etc.).
+
+## High-level goals for this project
+
+Your overarching goals across sessions are:
+
+1. Modernize the codebase into a production-ready full-stack app.
+2. Make the **backend the single source of truth for all AI features** (backend-first architecture).
+3. Refactor the **frontend to call the FastAPI backend only**, never model APIs directly.
+4. Preserve and improve existing functionality, UX, and reliability.
+5. Keep the codebase easy to reason about and maintain for a small team.
+
+The repository already has guiding files. Before doing any work in a new container, ALWAYS read:
+
+- `AGENTS.md`
+- `MODERNIZATION_EXECPLAN.md`
+- `BACKEND_MIGRATION_PLAN.md`
+- Any README or docs in `/backend` and `/frontend` (or root)
+
+Assume the Codex setup script has already:
+
+- Installed frontend deps with `npm install`
+- Installed backend deps with `cd backend && poetry install`
+- Optionally appended an “Environment bootstrap (for agents)” section to `AGENTS.md`
+
+If something looks broken, re-read AGENTS.md and follow its instructions before changing the setup.
+
+---
+
+## Environment and architecture assumptions
+
+- The app is backend-first:
+  - Frontend (likely React/TypeScript or similar) runs in the browser.
+  - Backend is a FastAPI application in `backend/` (entrypoint `app.main:app` or similar).
+- The backend exposes AI endpoints under `/api/ai`:
+
+  - `POST /api/ai/generate-pico`    – PICO-T extraction
+  - `POST /api/ai/generate-summary` – Document summary
+  - `POST /api/ai/validate-field`   – Field validation
+  - `POST /api/ai/find-metadata`    – DOI/PMID extraction
+  - `POST /api/ai/extract-tables`   – Table extraction
+  - `POST /api/ai/analyze-image`    – Image analysis
+  - `POST /api/ai/deep-analysis`    – Deep document analysis
+
+- AI provider keys (e.g. `GEMINI_API_KEY`, optionally `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`) are provided **only to the backend** via environment variables / `backend/.env`.  
+  **Never** expose or reference these keys in frontend code or logs.
+
+- The frontend should call the backend using a configured base URL (e.g. `VITE_BACKEND_URL` in `.env.local`), not via hardcoded URLs.
+
+---
+
+## Session goals for this run
+
+For this run, focus on:
+
+1. **Bootstrap & verification**
+   - Read `AGENTS.md`, `MODERNIZATION_EXECPLAN.md`, and `BACKEND_MIGRATION_PLAN.md` and internalize their constraints.
+   - Confirm the environment is usable:
+     - Frontend deps: `npm install` (if needed).
+     - Backend deps: `cd backend && poetry install` (if needed).
+   - Start the backend locally:
+     - `cd backend`
+     - `poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000`
+   - In another shell, run simple manual tests against the backend:
+     - Call a subset of the AI endpoints (e.g. `generate-pico`, `generate-summary`, `extract-tables`, `deep-analysis`) with minimal JSON payloads and ensure they return HTTP 2xx and reasonable JSON.
+
+2. **Backend: ensure all AI endpoints are robust and production-ready**
+   - Locate where the AI logic lives in the backend (e.g. services/clients for Gemini/other models).
+   - Make sure each of the endpoints listed above:
+     - Exists and is wired into FastAPI routers.
+     - Validates input correctly (Pydantic models, proper types).
+     - Handles errors gracefully (timeouts, provider errors, invalid input).
+     - Uses the environment variables for API keys (never hardcodes them).
+     - Returns structured, well-typed JSON responses that are convenient for the frontend.
+   - If there are duplicated or ad-hoc AI calls, consolidate them behind a single, clean abstraction (e.g. `AiService` / `LLMClient` on the backend).
+   - Add or update backend tests where appropriate (e.g. `pytest` or FastAPI test client) to cover:
+     - Happy path for key endpoints.
+     - Error behavior for invalid input or model failures.
+
+3. **Frontend: refactor AIService / data flow to use ONLY the backend**
+   - Find any frontend service/module that talks directly to AI providers (e.g. calls Gemini/LLM APIs from the browser).
+   - Refactor those services so that:
+     - All AI functionality is implemented as HTTP requests to the backend endpoints above.
+     - No AI provider SDK or fetch calls to external AI URLs exist in the frontend.
+     - Requests use the configured backend base URL (`VITE_BACKEND_URL` or equivalent).
+   - Keep the public surface of the frontend services as stable as possible to minimize changes across components.
+   - Make sure all existing features still work end-to-end using the backend:
+     - PICO-T extraction
+     - Document summary
+     - Field validation
+     - DOI/PMID metadata extraction
+     - Table extraction
+     - Image analysis (if implemented in the UI)
+     - Deep document analysis
+
+4. **UX / UI improvements (incremental, not a full rewrite)**
+   - While refactoring, incrementally improve:
+     - Error states (clear messages when backend/AI fails).
+     - Loading states (spinners/skeletons while waiting for AI).
+     - Layout and readability of AI results (PICO blocks, tables, summaries).
+   - Follow whatever design/UX guidelines exist in the repo or in AGENTS.md / MODERNIZATION_EXECPLAN.md.
+   - Do NOT do a full redesign unless explicitly requested; prioritize clarity and clinician-friendly presentation.
+
+---
+
+## Coding guidelines and workflow
+
+- **Before coding**
+  - Map the relevant files:
+    - Frontend: where AI calls and PDF flows live (services, hooks, pages).
+    - Backend: routers, services/clients for AI, Pydantic models.
+  - Derive a clear plan for this run (list of steps) and follow it.
+
+- **Editing files**
+  - Prefer small, focused, logically coherent changes.
+  - Use `apply_patch`/patch-style edits (or equivalent) rather than rewriting large files from scratch.
+  - Keep changes consistent with the existing style (linting, naming, formatting).
+
+- **Security and privacy**
+  - Never print or log secrets (API keys, tokens).
+  - Never move AI keys or secrets into the frontend.
+  - Be mindful that clinical data is sensitive; make sure no obvious data leaks are introduced.
+
+- **Testing and verification**
+  - After making changes:
+    - Run relevant frontend checks (for example, `npm test`, `npm run lint` or `npm run build` if they exist).
+    - Run backend tests with `cd backend && pytest` if a test suite is present.
+    - Manually verify the main flows from the UI (as far as the environment allows) using the backend endpoints.
+  - Do not consider the task complete until the main features work end-to-end with the backend.
+
+- **Communication and autonomy**
+  - You are allowed to operate autonomously: when in doubt, choose the most reasonable assumption based on the code and proceed, documenting assumptions in your final summary.
+  - Avoid asking the user to choose between implementation options unless absolutely necessary; propose a reasonable design and implement it.
+  - In your final response for each run:
+    - Summarize the high-level changes.
+    - List the key files you touched.
+    - Highlight any TODOs or follow-up work you recommend.
+    - Note any assumptions you made that might affect behavior.
+
+---
+
+## Scope for this run
+
+For THIS run, prioritize:
+
+1. Confirm environment and backend are functioning.
+2. Ensure the `/api/ai/...` endpoints are implemented and stable.
+3. Refactor the frontend AI service(s) so that ALL AI features go through the backend, with no remaining direct model calls in the browser.
+4. Keep existing features working; do not remove behavior without a strong reason.
+5. If time allows, add or improve tests to lock in the new behavior.
+
+If you run out of time or context, clearly document what is done, what is partially done, and what you would do next.

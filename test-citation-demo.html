@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citation Feature Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .pdf-viewer {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .citation-sidebar {
+            width: 400px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: fit-content;
+        }
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .demo-pdf {
+            background: #f9f9f9;
+            padding: 15px;
+            border: 1px solid #ddd;
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+        .demo-pdf h3 {
+            color: #555;
+            margin-top: 0;
+        }
+        .upload-section {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .query-section {
+            margin: 20px 0;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .citation-result {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .citation {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            margin: 0 2px;
+            cursor: pointer;
+        }
+        .citation:hover {
+            background: #0056b3;
+        }
+        .highlight {
+            background: yellow;
+            padding: 2px;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+        .page-indicator {
+            color: #666;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Clinical Extractor - Citation Feature Demonstration</h1>
+    
+    <div class="container">
+        <!-- PDF Viewer Section -->
+        <div class="pdf-viewer">
+            <h2>📄 PDF Document Viewer</h2>
+            
+            <div class="demo-pdf" id="pdf-content">
+                <h3>Medical Research Paper (Sample)</h3>
+                <p><strong>Page 1:</strong></p>
+                <p>
+                    <span id="text-1">This randomized controlled trial enrolled 450 patients with chronic lower back pain.</span>
+                    <span id="text-2">The study was conducted across 12 medical centers in the United States from January 2020 to December 2023.</span>
+                </p>
+                
+                <p><strong>Page 2:</strong></p>
+                <p>
+                    <span id="text-3">The primary outcome was pain reduction measured using the Visual Analog Scale (VAS).</span>
+                    <span id="text-4">Secondary outcomes included functional improvement assessed by the Oswestry Disability Index.</span>
+                </p>
+                
+                <p><strong>Page 3:</strong></p>
+                <p>
+                    <span id="text-5">Results showed a significant reduction in pain scores (p &lt; 0.001) in the treatment group.</span>
+                    <span id="text-6">The mean VAS score decreased from 7.2 ± 1.4 to 3.1 ± 1.2 after 12 weeks of treatment.</span>
+                </p>
+            </div>
+        </div>
+        
+        <!-- Citation Sidebar -->
+        <div class="citation-sidebar">
+            <h2>📑 Citations & Provenance</h2>
+            
+            <!-- Upload Section -->
+            <div class="upload-section">
+                <h3>Step 1: Upload to Gemini File Search</h3>
+                <button id="upload-btn" onclick="simulateUpload()">📤 Upload PDF to Gemini</button>
+                <div id="upload-status"></div>
+            </div>
+            
+            <!-- Query Section -->
+            <div class="query-section">
+                <h3>Step 2: Ask Questions</h3>
+                <input type="text" id="query-input" placeholder="e.g., What was the sample size?" disabled>
+                <button id="search-btn" onclick="simulateSearch()" disabled>🔍 Search with Citations</button>
+            </div>
+            
+            <!-- Results Section -->
+            <div id="results-section">
+                <h3>AI Response with Citations</h3>
+                <div id="citation-results">
+                    <p class="loading">Upload a PDF and ask a question to see citations...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let uploadComplete = false;
+        
+        function simulateUpload() {
+            const btn = document.getElementById('upload-btn');
+            const status = document.getElementById('upload-status');
+            const queryInput = document.getElementById('query-input');
+            const searchBtn = document.getElementById('search-btn');
+            
+            btn.disabled = true;
+            btn.textContent = '⏳ Uploading...';
+            status.innerHTML = '<div class="status info">Uploading to Gemini File Search Store...</div>';
+            
+            // Simulate upload delay
+            setTimeout(() => {
+                status.innerHTML = '<div class="status success">✅ PDF uploaded successfully! Store ID: fs_abc123xyz</div>';
+                btn.textContent = '✅ PDF Uploaded';
+                queryInput.disabled = false;
+                searchBtn.disabled = false;
+                uploadComplete = true;
+                
+                // Pre-fill sample query
+                queryInput.value = "What was the sample size of the study?";
+            }, 2000);
+        }
+        
+        function simulateSearch() {
+            if (!uploadComplete) return;
+            
+            const query = document.getElementById('query-input').value;
+            const results = document.getElementById('citation-results');
+            const searchBtn = document.getElementById('search-btn');
+            
+            searchBtn.disabled = true;
+            searchBtn.textContent = '⏳ Searching...';
+            results.innerHTML = '<p class="loading">Searching through document...</p>';
+            
+            // Simulate search delay
+            setTimeout(() => {
+                results.innerHTML = `
+                    <div class="citation-result">
+                        <h4>Answer:</h4>
+                        <p>
+                            The study enrolled <strong>450 patients</strong> with chronic lower back pain 
+                            <span class="citation" onclick="jumpToCitation('text-1', 1)">[1]</span>. 
+                            The trial was conducted across 12 medical centers 
+                            <span class="citation" onclick="jumpToCitation('text-2', 1)">[2]</span> 
+                            from January 2020 to December 2023.
+                        </p>
+                        
+                        <h4>Citations:</h4>
+                        <ul>
+                            <li>
+                                <span class="citation" onclick="jumpToCitation('text-1', 1)">[1]</span> 
+                                "This randomized controlled trial enrolled 450 patients..." 
+                                <span class="page-indicator">(Page 1)</span>
+                            </li>
+                            <li>
+                                <span class="citation" onclick="jumpToCitation('text-2', 1)">[2]</span> 
+                                "The study was conducted across 12 medical centers..." 
+                                <span class="page-indicator">(Page 1)</span>
+                            </li>
+                        </ul>
+                    </div>
+                `;
+                searchBtn.disabled = false;
+                searchBtn.textContent = '🔍 Search with Citations';
+                
+                // Add another example query
+                document.getElementById('query-input').value = "What were the primary outcomes?";
+            }, 2000);
+        }
+        
+        function jumpToCitation(textId, pageNum) {
+            // Remove previous highlights
+            document.querySelectorAll('.highlight').forEach(el => {
+                el.classList.remove('highlight');
+            });
+            
+            // Highlight the cited text
+            const element = document.getElementById(textId);
+            if (element) {
+                element.classList.add('highlight');
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // Show notification
+                const notification = document.createElement('div');
+                notification.className = 'status info';
+                notification.textContent = `📍 Jumped to citation on Page ${pageNum}`;
+                notification.style.position = 'fixed';
+                notification.style.top = '20px';
+                notification.style.left = '50%';
+                notification.style.transform = 'translateX(-50%)';
+                notification.style.zIndex = '10000';
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.remove();
+                }, 2000);
+            }
+        }
+    </script>
+</body>
+</html>

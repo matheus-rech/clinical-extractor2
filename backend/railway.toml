@@ -1,0 +1,21 @@
+# =============================================================================
+# Railway.app Configuration for Clinical Extractor Backend
+# =============================================================================
+# Deploy from backend directory: cd backend && railway up
+# =============================================================================
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "poetry install --no-interaction --no-ansi"
+
+[deploy]
+startCommand = "poetry run uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 4"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+healthcheckPath = "/health"
+healthcheckTimeout = 100
+
+# Environment variables (set via Railway dashboard)
+# GEMINI_API_KEY (secret)
+# ENVIRONMENT=production
+# WORKERS=4

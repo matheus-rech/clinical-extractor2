@@ -1,0 +1,119 @@
+# =============================================================================
+# Hugging Face Spaces Dockerfile for Clinical Extractor
+# =============================================================================
+# Combined frontend + backend deployment for Hugging Face Spaces
+# Port 7860 is required by Hugging Face
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Stage 1: Backend Dependencies
+# -----------------------------------------------------------------------------
+FROM python:3.11-slim as backend-deps
+
+WORKDIR /app/backend
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Poetry
+RUN pip install --no-cache-dir poetry==1.7.1
+
+# Copy backend dependencies
+COPY backend/pyproject.toml backend/poetry.lock ./
+RUN poetry config virtualenvs.create false && \
+    poetry install --no-interaction --no-ansi --no-root --only main
+
+# -----------------------------------------------------------------------------
+# Stage 2: Frontend Build
+# -----------------------------------------------------------------------------
+FROM node:18-alpine as frontend-builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+RUN npm ci
+
+# Copy source and build
+COPY . .
+RUN npm run build
+
+# -----------------------------------------------------------------------------
+# Stage 3: Production Runtime
+# -----------------------------------------------------------------------------
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    nginx \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Python packages from builder
+COPY --from=backend-deps /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=backend-deps /usr/local/bin /usr/local/bin
+
+# Copy backend application
+COPY backend/app /app/backend/app
+COPY backend/pyproject.toml /app/backend/
+
+# Copy frontend build
+COPY --from=frontend-builder /app/dist /usr/share/nginx/html
+
+# Configure Nginx for Hugging Face (port 7860)
+RUN echo 'server { \
+    listen 7860; \
+    server_name _; \
+    root /usr/share/nginx/html; \
+    index index.html; \
+    \
+    # SPA routing \
+    location / { \
+        try_files $uri $uri/ /index.html; \
+    } \
+    \
+    # Proxy API requests to backend \
+    location /api { \
+        proxy_pass http://localhost:8000; \
+        proxy_set_header Host $host; \
+        proxy_set_header X-Real-IP $remote_addr; \
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; \
+        proxy_set_header X-Forwarded-Proto $scheme; \
+    } \
+    \
+    # Health check \
+    location /health { \
+        access_log off; \
+        return 200 "healthy\n"; \
+        add_header Content-Type text/plain; \
+    } \
+}' > /etc/nginx/sites-available/default
+
+# Expose Hugging Face required port
+EXPOSE 7860
+
+# Create startup script
+RUN echo '#!/bin/bash\n\
+set -e\n\
+echo "Starting Clinical Extractor on Hugging Face Spaces..."\n\
+\n\
+# Start Nginx in background\n\
+echo "Starting Nginx..."\n\
+nginx\n\
+\n\
+# Start FastAPI backend\n\
+echo "Starting FastAPI backend..."\n\
+cd /app/backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2\n\
+' > /start.sh && chmod +x /start.sh
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:7860/health || exit 1
+
+# Start services
+CMD ["/start.sh"]
