@@ -202,7 +202,7 @@ export const PDFRenderer = {
                 span.style.pointerEvents = 'auto';
                 span.style.cursor = 'text';
                 span.style.userSelect = 'text';
-                span.style.WebkitUserSelect = 'text';
+                (span.style as any).webkitUserSelect = 'text';
                 
                 // Increase base opacity for better visibility (0.2 → 0.4)
                 span.style.opacity = '0.4';

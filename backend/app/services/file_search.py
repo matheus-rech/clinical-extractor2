@@ -1,37 +1,58 @@
 """
 Gemini File Search Service
 Handles PDF uploads to File Search stores and querying with citations
+
+Note: This service requires the newer google-genai SDK for File Search API.
+Falls back gracefully if not available.
 """
 import base64
 import asyncio
 import json
 from typing import Optional, Dict, Any, List
-from google import genai
-from google.genai import types
 from ..config import settings
+
+# Try to import the newer google-genai SDK for File Search
+try:
+    from google import genai
+    from google.genai import types
+    HAS_FILE_SEARCH = True
+except ImportError:
+    # Fall back to google-generativeai which doesn't have File Search
+    import google.generativeai as genai
+    HAS_FILE_SEARCH = False
 
 
 class FileSearchService:
     """Service for managing Gemini File Search operations"""
-    
+
     def __init__(self):
         """Initialize the File Search service with Gemini client"""
-        self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        # Store mappings of document_id to file_search_store_id
         self.store_mappings: Dict[str, str] = {}
+        self.client = None
+
+        if HAS_FILE_SEARCH:
+            try:
+                self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
+            except Exception as e:
+                print(f"Warning: Could not initialize File Search client: {e}")
+        else:
+            print("Note: File Search API not available. Citation features will be limited.")
     
     async def upload_pdf_to_file_search(self, document_id: str, pdf_base64: str, filename: str) -> Dict[str, str]:
         """
         Upload a PDF to a new File Search store
-        
+
         Args:
             document_id: Unique ID for the document
             pdf_base64: Base64 encoded PDF data
             filename: Name of the PDF file
-            
+
         Returns:
             Dictionary with file_search_store_id and status
         """
+        if not self.client:
+            raise Exception("File Search API not available. Install google-genai package for this feature.")
+
         try:
             # Decode base64 PDF data
             pdf_data = base64.b64decode(
@@ -99,6 +120,9 @@ class FileSearchService:
         Returns:
             Dictionary with answer and citation details
         """
+        if not self.client:
+            raise Exception("File Search API not available. Install google-genai package for this feature.")
+
         try:
             # Generate response with File Search tool
             response = self.client.models.generate_content(

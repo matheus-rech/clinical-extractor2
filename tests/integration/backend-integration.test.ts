@@ -433,43 +433,43 @@ describe('Backend Integration Tests', () => {
             {
                 name: 'generatePICO',
                 method: () => BackendAIClient.generatePICO({ pdf_text: 'PDF text' }),
-                endpoint: '/api/ai/generate-pico',
+                endpoint: '/ai/generate-pico',
                 mockResult: { population: 'Test', intervention: 'Test', comparator: 'Test', outcome: 'Test', timing: 'Test', studyType: 'Test' }
             },
             {
                 name: 'generateSummary',
                 method: () => BackendAIClient.generateSummary({ pdf_text: 'PDF text' }),
-                endpoint: '/api/ai/generate-summary',
+                endpoint: '/ai/generate-summary',
                 mockResult: { summary: 'Test summary' }
             },
             {
                 name: 'validateField',
                 method: () => BackendAIClient.validateField({ field_id: 'f1', field_value: 'v1', pdf_text: 'text' }),
-                endpoint: '/api/ai/validate-field',
+                endpoint: '/ai/validate-field',
                 mockResult: { is_supported: true, quote: 'Test', confidence: 0.9 }
             },
             {
                 name: 'findMetadata',
                 method: () => BackendAIClient.findMetadata({ pdf_text: 'PDF text' }),
-                endpoint: '/api/ai/find-metadata',
+                endpoint: '/ai/find-metadata',
                 mockResult: { doi: '10.1234/test', pmid: '12345678', journal: 'Test Journal', year: 2024 }
             },
             {
                 name: 'extractTables',
                 method: () => BackendAIClient.extractTables({ pdf_text: 'PDF text' }),
-                endpoint: '/api/ai/extract-tables',
+                endpoint: '/ai/extract-tables',
                 mockResult: { tables: [] }
             },
             {
                 name: 'analyzeImage',
                 method: () => BackendAIClient.analyzeImage({ image_base64: 'base64', prompt: 'prompt' }),
-                endpoint: '/api/ai/analyze-image',
+                endpoint: '/ai/analyze-image',
                 mockResult: { analysis: 'Test analysis', confidence: 0.9 }
             },
             {
                 name: 'deepAnalysis',
                 method: () => BackendAIClient.deepAnalysis({ pdf_text: 'Full PDF text', prompt: 'prompt' }),
-                endpoint: '/api/ai/deep-analysis',
+                endpoint: '/ai/deep-analysis',
                 mockResult: { analysis: 'Deep test', confidence: 0.9 }
             }
         ];

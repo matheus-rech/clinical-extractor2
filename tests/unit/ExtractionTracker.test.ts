@@ -45,7 +45,11 @@ describe('ExtractionTracker', () => {
       ExtractionTracker.addExtraction(extraction);
 
       expect(mockAppStateManager.setState).toHaveBeenCalledWith({
-        extractions: [extraction],
+        extractions: [expect.objectContaining({
+          ...extraction,
+          citationCount: 0,
+          citationIndices: [],
+        })],
       });
     });
 
