@@ -27,15 +27,19 @@ class FileSearchService:
 
     def __init__(self):
         """Initialize the File Search service with Gemini client"""
+        global HAS_FILE_SEARCH
         self.store_mappings: Dict[str, str] = {}
         self.client = None
 
         if HAS_FILE_SEARCH:
             try:
                 self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
+                print("✅ File Search API initialized successfully")
             except Exception as e:
                 print(f"Warning: Could not initialize File Search client: {e}")
-        else:
+                HAS_FILE_SEARCH = False
+
+        if not HAS_FILE_SEARCH:
             print("Note: File Search API not available. Citation features will be limited.")
     
     async def upload_pdf_to_file_search(self, document_id: str, pdf_base64: str, filename: str) -> Dict[str, str]:
